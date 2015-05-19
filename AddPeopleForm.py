@@ -1,4 +1,4 @@
-# 1.0
+# 1.1
 import System.Drawing
 import System.Windows.Forms
 
@@ -420,7 +420,7 @@ class AddPeopleForm(Form):
             dbHelper = DatabaseHelper()
             dbHelper.addBatch( self._rtbBatch.Text, self )
         except Exception, e:
-            print 'Error: ', e
+            print 'Batch Error: ', e
 
     def BgBatchProgressChanged(self, sender, e):
         # Update the progress bar

@@ -1,4 +1,4 @@
-# 1.0
+# 1.1
 import csv
 import json
 import os
@@ -235,7 +235,7 @@ class DatabaseHelper:
 
                 parent._bgBatch.ReportProgress( int((current/total) * 100) )
         except Exception, e:
-            print e
+            print 'Add Batch Error:', e
             raise e
 
         self.close()

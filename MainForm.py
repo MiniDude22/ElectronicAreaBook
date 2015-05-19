@@ -1,4 +1,4 @@
-# 1.0
+# 1.1
 import itertools
 import os
 
@@ -116,6 +116,9 @@ class MainForm(Form):
         self._dgvPeople.CellValidating += self.DgvPeopleCellValidating
         self._dgvPeople.UserDeletedRow += self.DgvPeopleUserDeletedRow
         self._dgvPeople.UserDeletingRow += self.DgvPeopleUserDeletingRow
+        self._dgvPeople.RowEnter += self.DgvPeopleRowEnter
+        self._dgvPeople.RowLeave += self.DgvPeopleRowLeave
+        self._dgvPeople.CellClick += self.DgvPeopleCellClick
         #
         # lblSearch
         #
@@ -354,41 +357,21 @@ class MainForm(Form):
         self._tpRegions.ResumeLayout(False)
         self.ResumeLayout(False)
 
-    def DGVAddPeople( self, people, clear=True ):
-        groups = self.dbHelper.getGroups()
-
-        if clear: self._dgvPeople.Rows.Clear()
-
-        for person in people:
-
-            self.DGVAddPerson( person, groups )
-
-    def DGVAddPerson( self, person, groups=None ):
-        groups = self.dbHelper.getGroups() if groups == None else groups
-
-        index = self._dgvPeople.Rows.Count
-
-        self._dgvPeople.Rows.Add()
-
-        self._dgvPeople.Rows[ index ].Cells[0].Value = person[0]
-        self._dgvPeople.Rows[ index ].Cells[2].Value = person[1]
-        self._dgvPeople.Rows[ index ].Cells[3].Value = person[3]
-        self._dgvPeople.Rows[ index ].Cells[4].Value = person[4]
-        self._dgvPeople.Rows[ index ].Cells[5].Value = person[5]
-        self._dgvPeople.Rows[ index ].Cells[6].Value = person[6]
-        self._dgvPeople.Rows[ index ].Cells[7].Value = person[7]
-        self._dgvPeople.Rows[ index ].Cells[8].Value = person[8]
-        self._dgvPeople.Rows[ index ].Cells[9].Value = person[9]
-
-        if 'Bad Address' in person[6] or person[8] == 0.0 or person[9] == 0.0:
-            self._dgvPeople.Rows[ index ].ErrorText = 'There is a bad address here!'
-
-        for g in groups:
-            self._dgvPeople.Rows[ index ].Cells[1].Items.Add( g[1] )
-
-        self._dgvPeople.Rows[ index ].Cells[1].Value = str(person[2])
-
     def InitializeData( self ):
+        self._rowHighlight = System.Windows.Forms.DataGridViewCellStyle()
+
+        self._rowHighlight.BackColor          = System.Drawing.Color.FromArgb( 67, 107, 149 )
+        self._rowHighlight.SelectionBackColor = System.Drawing.Color.FromArgb( 67, 107, 149 )
+        self._rowHighlight.ForeColor          = System.Drawing.Color.FromArgb( 255, 255, 255 )
+        self._rowHighlight.SelectionForeColor = System.Drawing.Color.FromArgb( 255, 255, 255 )
+
+        self._rowDefault = System.Windows.Forms.DataGridViewCellStyle()
+
+        self._rowDefault.BackColor          = System.Drawing.Color.FromArgb( 255, 255, 255 )
+        self._rowDefault.SelectionBackColor = System.Drawing.Color.FromArgb( 255, 255, 255 )
+        self._rowDefault.ForeColor          = System.Drawing.Color.FromArgb( 0, 0, 0 )
+        self._rowDefault.SelectionForeColor = System.Drawing.Color.FromArgb( 0, 0, 0 )
+
         people = self.dbHelper.getPeople()
 
         if people != None:
@@ -488,12 +471,13 @@ class MainForm(Form):
 
             for cell in row.Cells:
                 try:
-                    if sender.Text.lower() in str(cell.Value).lower():
+                    if unicode(sender.Text).lower() in unicode(cell.Value).lower():
                         count += 1
                         inRow = True
                         break
                 except Exception, e:
-                    print e
+                    print 'Search Error:', e
+                    raise e
 
             row.Visible = inRow
 
@@ -503,6 +487,24 @@ class MainForm(Form):
         self.mapHelperMain.cleanup()
         self.mapHelperRegion.cleanup()
         self.dbHelper.close()
+
+    # ===========================================================
+    # DataGridView
+    # ===========================================================
+    def DgvPeopleRowEnter(self, sender, e):
+        for cell in self._dgvPeople.Rows[e.RowIndex].Cells:
+            if cell.ColumnIndex in ( 0, 1 ): continue
+            cell.Style = self._rowHighlight
+
+    def DgvPeopleRowLeave(self, sender, e):
+        for cell in self._dgvPeople.Rows[e.RowIndex].Cells:
+            if cell.ColumnIndex in ( 0, 1 ): continue
+            cell.Style = self._rowDefault
+
+    def DgvPeopleCellClick(self, sender, e):
+        if e.ColumnIndex == 1: # The Combo Box Cell
+            self._dgvPeople.Rows[e.RowIndex].Selected = True
+            System.Windows.Forms.SendKeys.Send( "{f4}" )
 
     def DgvPeopleCellEndEdit(self, sender, e):
         success = self.dbHelper.updatePerson(
@@ -567,3 +569,38 @@ class MainForm(Form):
                 sender.Rows[e.RowIndex].Cells[8].Value = info.latitude
                 sender.Rows[e.RowIndex].Cells[9].Value = info.longitude
                 sender.Rows[e.RowIndex].ErrorText = ""
+
+
+    def DGVAddPeople( self, people, clear=True ):
+        groups = self.dbHelper.getGroups()
+
+        if clear: self._dgvPeople.Rows.Clear()
+
+        for person in people:
+
+            self.DGVAddPerson( person, groups )
+
+    def DGVAddPerson( self, person, groups=None ):
+        groups = self.dbHelper.getGroups() if groups == None else groups
+
+        index = self._dgvPeople.Rows.Count
+
+        self._dgvPeople.Rows.Add()
+
+        self._dgvPeople.Rows[ index ].Cells[0].Value = person[0]
+        self._dgvPeople.Rows[ index ].Cells[2].Value = person[1]
+        self._dgvPeople.Rows[ index ].Cells[3].Value = person[3]
+        self._dgvPeople.Rows[ index ].Cells[4].Value = person[4]
+        self._dgvPeople.Rows[ index ].Cells[5].Value = person[5]
+        self._dgvPeople.Rows[ index ].Cells[6].Value = person[6]
+        self._dgvPeople.Rows[ index ].Cells[7].Value = person[7]
+        self._dgvPeople.Rows[ index ].Cells[8].Value = person[8]
+        self._dgvPeople.Rows[ index ].Cells[9].Value = person[9]
+
+        if 'Bad Address' in person[6] or person[8] == 0.0 or person[9] == 0.0:
+            self._dgvPeople.Rows[ index ].ErrorText = 'There is a bad address here!'
+
+        for g in groups:
+            self._dgvPeople.Rows[ index ].Cells[1].Items.Add( g[1] )
+
+        self._dgvPeople.Rows[ index ].Cells[1].Value = str(person[2])

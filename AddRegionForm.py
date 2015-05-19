@@ -1,4 +1,4 @@
-# 1.0
+# 1.1
 import json
 
 import System.Drawing
@@ -257,7 +257,7 @@ class AddRegionForm(Form):
 
                 self.editorMapHelper.buildPage( region )
             except Exception, e:
-                print e
+                print 'Editing Error:', e
                 raise e
 
         else:
